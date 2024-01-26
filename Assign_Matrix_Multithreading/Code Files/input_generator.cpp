@@ -3,8 +3,8 @@
 #include<bits/stdc++.h>
 using namespace std;
 
-#define n 1000 // size of matrix
-#define k 8 // number of threads
+#define n 30 // size of matrix
+#define k 5 // number of threads
 
 int main() {
 

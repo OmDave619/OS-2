@@ -11,6 +11,11 @@ vector<vector<int>> prod_mixed; //product matrix A*A (using mixed method)
 vector<long long> exec_time_chunks; //execution time of each thread (using chunk method)
 vector<long long> exec_time_mixed;  //execution time of each thread (using mixed method)
 
+//For mixed-chunk method
+vector<vector<int>> prod_mixed_chunks;
+vector<long long> exec_time_mixed_chunks;
+int chunk_for_mixed_chunks;
+
 typedef struct ComputeArgs {
     int thread_id;
     int start;  //starting row for each thread
@@ -21,7 +26,7 @@ void* Compute_chunk(void* arg) {
     ComputeArgs* args = (ComputeArgs*)arg;
     int thread_id = args->thread_id;
     int start = args->start;
-    int end = min(start + chunk,n);
+    int end = min(start + chunk, n);
 
     // last thread computes remaining rows
     if (thread_id == k) end = n;
@@ -74,6 +79,34 @@ void* Compute_mixed(void* arg) {
     pthread_exit(NULL);
 }
 
+// Computes square of matrix using mixed-chunks method
+void* Compute_mixed_chunks(void* arg) {
+    ComputeArgs* args = (ComputeArgs*)arg;
+    int thread_id = args->thread_id;
+    int start = args->start;
+    int end=n;
+
+    struct timespec start_time, end_time;
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
+
+    for (int p = start; p < end; p += k*chunk_for_mixed_chunks) {
+        for(int i = p; i < min(p+chunk_for_mixed_chunks,n); i++) {    
+            for (int j = 0; j < n; j++) {
+                for (int k = 0; k < n; k++) {
+                    prod_mixed_chunks[i][j] += A[i][k] * A[k][j];
+                }
+            }
+        }
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
+    double time_taken = (end_time.tv_sec - start_time.tv_sec) * 1e9 + (end_time.tv_nsec - start_time.tv_nsec);
+    exec_time_mixed_chunks[thread_id] = time_taken;
+
+    free(args);
+    pthread_exit(NULL);
+}
+
 void print_matrix(vector<vector<int>>& matrix, FILE* out) {
     cout << endl;
     for (int i = 0; i < n; i++) {
@@ -115,6 +148,8 @@ int main() {
     A.resize(n, vector<int>(n, 0));
     prod_chunk.resize(n, vector<int>(n, 0));
     prod_mixed.resize(n, vector<int>(n, 0));
+    prod_mixed_chunks.resize(n, vector<int>(n, 0));
+    exec_time_mixed_chunks.resize(k+1,0);
     exec_time_chunks.resize(k + 1, 0);
     exec_time_mixed.resize(k + 1, 0);
 
@@ -145,7 +180,7 @@ int main() {
 
     //printing the product matrix
     fprintf(output, "Product matrix(Chunks):\n");
-    // print_matrix(prod_chunk, output);
+    print_matrix(prod_chunk, output);
 
     long long chunk_time = (end_time.tv_sec - start_time.tv_sec) * 1e9 + (end_time.tv_nsec - start_time.tv_nsec);
     fprintf(output, "\nTotal time taken in chunk method: %lld nanoseconds\n", (chunk_time));
@@ -174,7 +209,7 @@ int main() {
 
     //printing the product matrix
     fprintf(output, "Product matrix(Mixed):\n");
-    // print_matrix(prod_mixed, output);
+    print_matrix(prod_mixed, output);
 
     long long mixed_time = (end_time.tv_sec - start_time.tv_sec) * 1e9 + (end_time.tv_nsec - start_time.tv_nsec);
     fprintf(output, "\nTotal time taken in mixed method: %lld nanoseconds\n", (mixed_time));
@@ -183,4 +218,37 @@ int main() {
         fprintf(output, "Time taken by thread %d: %lld nanoseconds\n", i + 1, (exec_time_mixed[i + 1]));
     }
 
+
+    //mixed-chunks method
+    fprintf(output, "\n\nMixed-Chunks method:\n\n");
+
+    //determine size of chunk in mixed-chunks method
+    chunk_for_mixed_chunks = max(((n/k)/k)*2,2);
+    fprintf(output,"Size of block/chunk in mixed-chunk method: %d\n\n",chunk_for_mixed_chunks);
+
+    clock_gettime(CLOCK_MONOTONIC, &start_time);
+
+    for (int i = 0; i < k; i++) {
+        ComputeArgs* args = (ComputeArgs*)malloc(sizeof(ComputeArgs));
+        args->thread_id = i + 1;
+        args->start = i*chunk_for_mixed_chunks;
+        pthread_create(&threads[i], NULL, Compute_mixed_chunks, (void*)args);
+    }
+
+    for (int i = 0; i < k; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &end_time);
+
+    //printing the product matrix
+    fprintf(output, "Product matrix(Mixed-chunks):\n");
+    print_matrix(prod_mixed_chunks, output);
+
+    long long mixed_chunks_time = (end_time.tv_sec - start_time.tv_sec) * 1e9 + (end_time.tv_nsec - start_time.tv_nsec);
+    fprintf(output, "\nTotal time taken in mixed-chunks method: %lld nanoseconds\n", (mixed_chunks_time));
+
+    for (int i = 0; i < k; i++) {
+        fprintf(output, "Time taken by thread %d: %lld nanoseconds\n", i + 1, (exec_time_mixed_chunks[i + 1]));
+    }
 }
