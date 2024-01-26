@@ -1,0 +1,22 @@
+Size of matrix: 10 
+Number of threads: 4
+
+Chunk method:
+Product matrix(Chunks):
+
+Total time taken in chunk method: 521576 nanoseconds
+Time taken by thread 1: 3217 nanoseconds
+Time taken by thread 2: 3156 nanoseconds
+Time taken by thread 3: 2525 nanoseconds
+Time taken by thread 4: 4659 nanoseconds
+
+
+Mixed method:
+
+Product matrix(Mixed):
+
+Total time taken in mixed method: 139145 nanoseconds
+Time taken by thread 1: 3587 nanoseconds
+Time taken by thread 2: 3657 nanoseconds
+Time taken by thread 3: 2705 nanoseconds
+Time taken by thread 4: 2345 nanoseconds
