@@ -3,7 +3,7 @@
 #include<bits/stdc++.h>
 using namespace std;
 
-#define n 25// size of matrix
+#define n 10// size of matrix
 #define k 4 // number of threads
 
 int main() {

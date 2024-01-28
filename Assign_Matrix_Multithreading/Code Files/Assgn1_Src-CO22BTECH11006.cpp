@@ -11,7 +11,6 @@ vector<vector<int>> prod_mixed; //product matrix A*A (using mixed method)
 vector<long long> exec_time_chunks; //execution time of each thread (using chunk method)
 vector<long long> exec_time_mixed;  //execution time of each thread (using mixed method)
 
-
 //For mixed-chunk method
 vector<vector<int>> prod_mixed_chunks;
 vector<long long> exec_time_mixed_chunks;
@@ -120,15 +119,17 @@ void print_matrix(vector<vector<int>>& matrix, FILE* out) {
     }
 }
 
+//creates and joins threads also prints the contents to output files, and returns time taken to execute
 long long chunk_method(vector<pthread_t>& threads, FILE* output) {
-    
+
     fprintf(output, "\n\nChunk method:\n");
 
     struct timespec start_time, end_time;
     clock_gettime(CLOCK_MONOTONIC, &start_time);
 
-    chunk = max(n / k, 2);
+    chunk = max(n / k, 2);  //using minimum chunk size as 2 other wise method would reduce to mixed
 
+    //creating k threads and passing the starting indices to each thread 
     for (int i = 0; i < k; i++) {
         ComputeArgs* args = (ComputeArgs*)malloc(sizeof(ComputeArgs));
         args->thread_id = i + 1;
@@ -136,6 +137,7 @@ long long chunk_method(vector<pthread_t>& threads, FILE* output) {
         pthread_create(&threads[i], NULL, Compute_chunk, (void*)args);
     }
 
+    //joining all threads
     for (int i = 0; i < k; i++) {
         pthread_join(threads[i], NULL);
     }
@@ -158,9 +160,9 @@ long long chunk_method(vector<pthread_t>& threads, FILE* output) {
 }
 
 long long mixed_method(vector<pthread_t>& threads, FILE* output) {
-    
+
     fprintf(output, "\n\nMixed method:\n\n");
-    
+
     struct timespec start_time, end_time;
     clock_gettime(CLOCK_MONOTONIC, &start_time);
 
@@ -187,19 +189,21 @@ long long mixed_method(vector<pthread_t>& threads, FILE* output) {
     for (int i = 0; i < k; i++) {
         fprintf(output, "Time taken by thread %d: %lld nanoseconds\n", i + 1, (exec_time_mixed[i + 1]));
     }
-    
+
     return mixed_time;
 }
 
 long long mixed_chunks_method(vector<pthread_t>& threads, FILE* output) {
 
     fprintf(output, "\n\nMixed-Chunks method:\n\n");
-    
+
     struct timespec start_time, end_time;
     clock_gettime(CLOCK_MONOTONIC, &start_time);
 
     //determine size of chunk in mixed-chunks method
     chunk_for_mixed_chunks = max(((n / k) / k) * 2, 2);
+    //For Eg, for N=1000 and K=10, size of chunk would be 2*n/k^2 = 20 rows per block
+
     fprintf(output, "\n\nSize of block/chunk in mixed-chunk method: %d\n\n", chunk_for_mixed_chunks);
 
     for (int i = 0; i < k; i++) {
@@ -266,28 +270,34 @@ int main() {
     //creating k threads
     vector<pthread_t> threads(k);
 
-    int num_rep=1; //used while plotting to take average time (taking 5 repititons) 
+    int num_rep = 1; //used while plotting to take average time (taking 5 repititons) 
 
     // // chunk method
-    long long chunk_time=0;
-    for(int i = 0; i < num_rep; i++) {
-        chunk_time += chunk_method(threads,output);
+    long long chunk_time = 0;
+    for (int i = 0; i < num_rep; i++) {
+        chunk_time += chunk_method(threads, output);
     }
-    chunk_time/=num_rep;
+    chunk_time /= num_rep;
 
     // // mixed method
-    long long mixed_time=0;
-    for(int i = 0; i < num_rep; i++) {
-        mixed_time += mixed_method(threads,output);
+    long long mixed_time = 0;
+    for (int i = 0; i < num_rep; i++) {
+        mixed_time += mixed_method(threads, output);
     }
-    mixed_time/=num_rep;
-    
+    mixed_time /= num_rep;
+
     //mixed-chunks method
-    long long mixed_chunks_time=0;
-    for(int i = 0; i < num_rep; i++) {
-        mixed_chunks_time += mixed_chunks_method(threads,output);
+    long long mixed_chunks_time = 0;
+    for (int i = 0; i < num_rep; i++) {
+        mixed_chunks_time += mixed_chunks_method(threads, output);
     }
-    mixed_chunks_time/=num_rep;
+    mixed_chunks_time /= num_rep;
+
+    //NOTE: ON RUNNING ALL THE THREE METHODS AT SAME TIME IN SINGLE CODE,
+    //      THE METHOD WHICH WAS FIRST EXECUTED WOULD COMPARITIVELY TAKE LONGER TIME,
+    //      AS FOR THE SUBSEQUENT METHODS, THE DATA WOULD BE CACHED FOR FASTER ACCESS.
+    //      WHILE PLOTTING THE GRAPH, SINGLE METHOD WAS RUN AT TIME TO PREVENT CACHING AND 
+    //      MAKE SURE NO METHOD HAS ANY UNDUE ADVANTAGE.
 
     //time taken in all methods
     fprintf(output, "\nTotal time taken in chunk method: %lld microseconds\n", (chunk_time) / 1000);
