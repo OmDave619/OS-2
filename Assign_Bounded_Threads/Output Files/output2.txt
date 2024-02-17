@@ -1,0 +1,36 @@
+Size of matrix: 1024 
+Number of threads: 32
+
+Mixed method:
+
+Product matrix(Mixed):
+
+Total time taken in mixed method: 2.217322 nanoseconds
+
+
+Mixed method:
+
+Product matrix(Mixed):
+
+Total time taken in mixed method: 2.214010 nanoseconds
+
+
+Mixed method:
+
+Product matrix(Mixed):
+
+Total time taken in mixed method: 2.216928 nanoseconds
+
+
+Mixed method:
+
+Product matrix(Mixed):
+
+Total time taken in mixed method: 2.237587 nanoseconds
+
+
+Mixed method:
+
+Product matrix(Mixed):
+
+Total time taken in mixed method: 2.184930 nanoseconds

@@ -1,0 +1,31 @@
+Size of matrix: 1024 
+Number of threads: 32
+
+Chunk method:
+Product matrix(Chunks):
+
+Total time taken in chunk method: 2.229859 seconds
+
+
+Chunk method:
+Product matrix(Chunks):
+
+Total time taken in chunk method: 2.056352 seconds
+
+
+Chunk method:
+Product matrix(Chunks):
+
+Total time taken in chunk method: 1.996055 seconds
+
+
+Chunk method:
+Product matrix(Chunks):
+
+Total time taken in chunk method: 1.987402 seconds
+
+
+Chunk method:
+Product matrix(Chunks):
+
+Total time taken in chunk method: 1.993850 seconds

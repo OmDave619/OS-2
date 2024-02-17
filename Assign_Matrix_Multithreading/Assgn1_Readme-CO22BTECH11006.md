@@ -1,6 +1,3 @@
-To preview this md file
-right click on this file and select preview
-
 
 # Multi-Threaded Matrix Multiplication
 
