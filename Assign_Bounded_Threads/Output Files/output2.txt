@@ -5,32 +5,51 @@ Mixed method:
 
 Product matrix(Mixed):
 
-Total time taken in mixed method: 2.217322 nanoseconds
+Total time taken in mixed method: 1.751349 nanoseconds
 
+Execution time of each bounded thread:
+Thread 1: 1.631181 seconds
+Thread 2: 1.624004 seconds
+Thread 3: 1.508095 seconds
+Thread 4: 1.660594 seconds
+Thread 5: 1.660016 seconds
+Thread 6: 1.695075 seconds
+Thread 7: 1.258443 seconds
+Thread 8: 0.808376 seconds
+Thread 9: 1.704206 seconds
 
-Mixed method:
+Execution time of each unbounded thread:
+Thread 10: 1.695860 seconds
+Thread 11: 1.730321 seconds
+Thread 12: 1.165066 seconds
+Thread 13: 1.750530 seconds
+Thread 14: 1.709134 seconds
+Thread 15: 1.564498 seconds
+Thread 16: 1.403229 seconds
+Thread 17: 1.688377 seconds
+Thread 18: 1.710530 seconds
+Thread 19: 1.680546 seconds
+Thread 20: 1.672466 seconds
+Thread 21: 1.453865 seconds
+Thread 22: 1.633397 seconds
+Thread 23: 1.654766 seconds
+Thread 24: 1.716944 seconds
+Thread 25: 1.677585 seconds
+Thread 26: 1.702157 seconds
+Thread 27: 1.711266 seconds
+Thread 28: 1.685691 seconds
+Thread 29: 1.630028 seconds
+Thread 30: 1.640513 seconds
+Thread 31: 1.680559 seconds
+Thread 32: 1.712198 seconds
 
-Product matrix(Mixed):
-
-Total time taken in mixed method: 2.214010 nanoseconds
-
-
-Mixed method:
-
-Product matrix(Mixed):
-
-Total time taken in mixed method: 2.216928 nanoseconds
-
-
-Mixed method:
-
-Product matrix(Mixed):
-
-Total time taken in mixed method: 2.237587 nanoseconds
-
-
-Mixed method:
-
-Product matrix(Mixed):
-
-Total time taken in mixed method: 2.184930 nanoseconds
+CPU id of each bounded thread:
+Thread 1: 0
+Thread 2: 1
+Thread 3: 2
+Thread 4: 3
+Thread 5: 4
+Thread 6: 5
+Thread 7: 6
+Thread 8: 7
+Thread 9: 8

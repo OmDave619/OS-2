@@ -4,28 +4,51 @@ Number of threads: 32
 Chunk method:
 Product matrix(Chunks):
 
-Total time taken in chunk method: 2.229859 seconds
+Total time taken in chunk method: 1.839797 seconds
 
+Execution time of each bounded thread:
+Thread 1: 1.709834 seconds
+Thread 2: 1.786158 seconds
+Thread 3: 1.795352 seconds
+Thread 4: 1.741017 seconds
+Thread 5: 1.791891 seconds
+Thread 6: 1.785279 seconds
+Thread 7: 0.752907 seconds
+Thread 8: 0.758678 seconds
+Thread 9: 1.701662 seconds
 
-Chunk method:
-Product matrix(Chunks):
+Execution time of each unbounded thread:
+Thread 10: 1.669420 seconds
+Thread 11: 1.828725 seconds
+Thread 12: 1.829195 seconds
+Thread 13: 1.787075 seconds
+Thread 14: 1.690817 seconds
+Thread 15: 1.832077 seconds
+Thread 16: 1.714698 seconds
+Thread 17: 1.793678 seconds
+Thread 18: 1.771398 seconds
+Thread 19: 1.756607 seconds
+Thread 20: 1.735090 seconds
+Thread 21: 1.423226 seconds
+Thread 22: 1.768998 seconds
+Thread 23: 1.766378 seconds
+Thread 24: 1.814825 seconds
+Thread 25: 1.798384 seconds
+Thread 26: 1.722635 seconds
+Thread 27: 1.585455 seconds
+Thread 28: 1.803227 seconds
+Thread 29: 1.822564 seconds
+Thread 30: 1.378735 seconds
+Thread 31: 1.474695 seconds
+Thread 32: 1.785443 seconds
 
-Total time taken in chunk method: 2.056352 seconds
-
-
-Chunk method:
-Product matrix(Chunks):
-
-Total time taken in chunk method: 1.996055 seconds
-
-
-Chunk method:
-Product matrix(Chunks):
-
-Total time taken in chunk method: 1.987402 seconds
-
-
-Chunk method:
-Product matrix(Chunks):
-
-Total time taken in chunk method: 1.993850 seconds
+CPU id for each bounded thread:
+Thread 1: 0
+Thread 2: 1
+Thread 3: 2
+Thread 4: 3
+Thread 5: 4
+Thread 6: 5
+Thread 7: 6
+Thread 8: 7
+Thread 9: 8
