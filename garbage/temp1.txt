@@ -1,0 +1,6 @@
+0
+Size of matrix: 1024
+Number of threads: 6
+Bounded threads: 0
+Approx Bounded threads per core: 0
+
