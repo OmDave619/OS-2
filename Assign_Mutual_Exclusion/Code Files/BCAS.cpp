@@ -9,7 +9,7 @@ int n, k;   //size of matrix(n) and number of threads(k)
 int rowInc; //number of rows computed by each thread in one go (Similarly to chunk size)
 vector<vector<int>> A; //matrix A
 vector<vector<int>> prod; //product matrix A*A 
-atomic<int> C(0); // Shared counter (atomic variable) to keep track of the number of threads that have completed their work
+int C; // Shared counter to keep track of the number of threads that have completed their work
 atomic<bool> lock_(false); // BCAS lock initialized to false
 vector<atomic<bool>*> waiting; // vector to keep track of threads waiting in Bounded CAS
 
