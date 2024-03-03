@@ -4,15 +4,15 @@
 using namespace std;
 
 #define n 1024// size of matrix
-#define k 4 // number of threads
-#define rowInc 23 //Number of rows calculated by a thread in one go
+#define k 16 // number of threads
+#define rowInc 16 //Number of rows calculated by a thread in one go
 
 int main() {
      
     //for sparse matrix
-    vector<int> input_arr(10,0);
+    vector<int> input_arr(100,0);
     for(int i = 0; i < 25; i++) {
-        input_arr[rand()%10] = rand()%10;
+        input_arr[rand()%100] = rand()%10;
     }
 
     FILE* out = fopen("../Input Files/input.txt", "w");
@@ -26,7 +26,7 @@ int main() {
     //generate matrix of size n by n with random numbers
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            fprintf(out, "%d ", input_arr[rand()% 10]);
+            fprintf(out, "%d ", input_arr[rand()% 100]);
         }
         fprintf(out, "\n");
     }

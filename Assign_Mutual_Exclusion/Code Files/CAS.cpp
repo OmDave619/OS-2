@@ -142,7 +142,14 @@ int main() {
     vector<pthread_t> threads(k);
     
     //CAS Method
-    double CAS_time = CAS(threads, output);
+    int num_rep = 1;
+    double CAS_time=0;
+    for(int i = 0; i < num_rep; i++) {
+        CAS_time += CAS(threads, output);
+        C=0;
+    }
+    CAS_time/=num_rep;
+    cout << "Average CAS time: " << CAS_time << "\n";
 
     fclose(output);
 }

@@ -11,7 +11,7 @@ vector<vector<int>> A; //matrix A
 vector<vector<int>> prod; //product matrix A*A 
 int C; // Shared counter to keep track of the number of threads that have completed their work
 atomic<bool> lock_(false); // BCAS lock initialized to false
-vector<atomic<bool>*> waiting; // vector to keep track of threads waiting in Bounded CAS
+vector<bool> waiting; // vector to keep track of threads waiting in Bounded CAS
 
 typedef struct ComputeArgs {    //struct for thread arguments
     int thread_id;
@@ -26,14 +26,14 @@ void* Compute_BCAS(void* arg) {
 
         if (C > n) break; // All rows of product matrix have been computed
 
-        waiting[thread_id]->store(true); // Thread is waiting
-        while(waiting[thread_id]->load()) { //spin untill thread is not waiting
+        waiting[thread_id]=true; // Thread is waiting
+        while(waiting[thread_id]) { //spin untill thread is not waiting
             bool expected = false;
             if(lock_.compare_exchange_strong(expected, true)) {
                 break; //lock acquired, break out from this loop and enter critical section
             }
         }
-        waiting[thread_id]->store(false); // Current thread can enter critical section, it is not waiting any more
+        waiting[thread_id]=false; // Current thread can enter critical section, it is not waiting any more
 
         /* Critical Section */ 
 
@@ -48,7 +48,7 @@ void* Compute_BCAS(void* arg) {
         
         //cyclically search for next waiting thread
         int j = (thread_id + 1) % k;
-        while(j != thread_id && !waiting[j]->load()) {
+        while(j != thread_id && !waiting[j]) {
             j = (j + 1) % k;            
         }
 
@@ -56,7 +56,7 @@ void* Compute_BCAS(void* arg) {
             lock_.store(false); //No waiting thread found, release the lock 
         }
         else {
-            waiting[j]->store(false); //Found a waiting thread, set it to false so it can entere critical section now
+            waiting[j]=false; //Found a waiting thread, set it to false so it can entere critical section now
         }
 
         /* Remainder Section */
@@ -145,10 +145,7 @@ int main() {
     fclose(input);
 
     //Resizing the waiting vector and setting all elements to false
-    waiting.resize(k);
-    for (int i = 0; i < k; i++) {
-        waiting[i] = new atomic<bool>(false);
-    }
+    waiting.resize(k,false);
 
     FILE* output = fopen("../Output Files/output_Bcas.txt", "w");
     if (output == NULL) {
@@ -165,7 +162,14 @@ int main() {
     vector<pthread_t> threads(k);
     
     //BCAS Method
-    double BCAS_time = BCAS(threads, output);
+    int num_rep = 1;
+    double BCAS_time=0;
+    for(int i = 0; i < num_rep; i++) {
+        BCAS_time += BCAS(threads, output);
+        C=0;
+    }
+    BCAS_time/=num_rep;
+    cout << "Average BCAS time: " << BCAS_time << "\n";
 
     fclose(output);
 }

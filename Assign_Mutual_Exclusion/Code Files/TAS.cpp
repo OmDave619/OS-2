@@ -138,7 +138,14 @@ int main() {
     vector<pthread_t> threads(k);
     
     //TAS Method
-    double TAS_time = TAS(threads, output);
+    int num_rep = 1;
+    double TAS_time=0;
+    for(int i = 0; i < num_rep; i++) {
+        TAS_time += TAS(threads, output);
+        C=0;
+    }
+    TAS_time/=num_rep;
+    cout << "Average TAS time: " << TAS_time << "\n";
 
     fclose(output);
 }

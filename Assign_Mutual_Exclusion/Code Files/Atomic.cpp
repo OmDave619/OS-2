@@ -39,7 +39,6 @@ void* Compute_ATOMIC(void* arg) {
                 }
             }
         }
-
     }
 
     free(args);
@@ -129,7 +128,14 @@ int main() {
     vector<pthread_t> threads(k);
     
     //ATOMIC Method
-    double ATOMIC_time = ATOMIC(threads, output);
+    int num_rep = 1;
+    double ATOMIC_time=0;
+    for(int i = 0; i < num_rep; i++) {
+        ATOMIC_time += ATOMIC(threads, output);
+        C=0;
+    }
+    ATOMIC_time/=num_rep;
+    cout << "Average ATOMIC time: " << ATOMIC_time << "\n";
 
     fclose(output);
 }
