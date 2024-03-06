@@ -9,34 +9,25 @@ int n, k;   //size of matrix(n) and number of threads(k)
 int rowInc; //number of rows computed by each thread in one go (Similarly to chunk size)
 vector<vector<int>> A; //matrix A
 vector<vector<int>> prod; //product matrix A*A 
-int C; // Shared counter to keep track of the number of threads that have completed their work
-atomic_flag lock_ = ATOMIC_FLAG_INIT; // TAS lock
+atomic<int> C(0); // Atomic Shared counter to keep track of the number of threads that have completed their work
 
 typedef struct ComputeArgs {    //struct for thread arguments
     int thread_id;
 } ComputeArgs;
 
 // Thread function to compute the certain rows (rowInc) of the square matrix 
-void* Compute_TAS(void* arg) {
+void* Compute_ATOMIC(void* arg) {
     ComputeArgs* args = (ComputeArgs*)arg;
     int thread_id = args->thread_id;
 
     while(true) {
 
-        if(C>n) break;  //All rows of product matrix have been computed
-
-        while(atomic_flag_test_and_set(&lock_)); //spin untill lock is acquired
+        if(C>=n) break;  //All rows of product matrix have been computed
 
         /* Critical Section */ 
-        
-        //Getting the start index and manually incrementing the shared counter C
-        int start = C; //returns the previous value of C
-        C+=rowInc; //Increment the counter
+        int start = C.fetch_add(rowInc); //Atomically returns the previous value of C counter and adds rowInc to it, basically gives the starting index for this to calculate
         int end = min(start + rowInc, n);
         cout << C << " " << start << " " << end << " Thread: " << thread_id << "\n";
-        
-        //CRITICAL SECTION ENDS
-        atomic_flag_clear(&lock_); //release the lock
 
         /* Remainder Section */
 
@@ -48,7 +39,6 @@ void* Compute_TAS(void* arg) {
                 }
             }
         }
-
     }
 
     free(args);
@@ -68,10 +58,10 @@ void print_matrix(vector<vector<int>>& matrix, FILE* out) {
     }
 }
 
-//Test And Set method to execute mutual exclusion
-double TAS(vector<pthread_t>& threads, FILE* output) {
+//Atomic method to execute mutual exclusion
+double ATOMIC(vector<pthread_t>& threads, FILE* output) {
 
-    fprintf(output, "Mutual Exclusion using TAS:\n");
+    fprintf(output, "Mutual Exclusion using ATOMIC:\n");
 
     struct timespec start_time, end_time;
     clock_gettime(CLOCK_MONOTONIC, &start_time);
@@ -80,7 +70,7 @@ double TAS(vector<pthread_t>& threads, FILE* output) {
     for (int i = 0; i < k; i++) {
         ComputeArgs* args = (ComputeArgs*)malloc(sizeof(ComputeArgs));
         args->thread_id = i;
-        pthread_create(&threads[i], NULL, Compute_TAS, (void*)args);
+        pthread_create(&threads[i], NULL, Compute_ATOMIC, (void*)args);
     }
 
     //joining all threads
@@ -90,16 +80,16 @@ double TAS(vector<pthread_t>& threads, FILE* output) {
 
     clock_gettime(CLOCK_MONOTONIC, &end_time);
 
-    double TAS_time = (end_time.tv_sec - start_time.tv_sec) + (1e-9) * (end_time.tv_nsec - start_time.tv_nsec);
+    double ATOMIC_time = (end_time.tv_sec - start_time.tv_sec) + (1e-9) * (end_time.tv_nsec - start_time.tv_nsec);
     
-    fprintf(output, "\nTotal time taken using TAS: %f seconds\n", (TAS_time));
-    cout << "Total time taken using TAS: " << TAS_time << " seconds" << endl;
+    fprintf(output, "\nTotal time taken using ATOMIC: %f seconds\n", (ATOMIC_time));
+    cout << "Total time taken using ATOMIC: " << ATOMIC_time << " seconds" << endl;
     
     // // printing the product matrix
-    fprintf(output, "Product matrix(TAS):\n");
+    fprintf(output, "Product matrix(ATOMIC):\n");
     print_matrix(prod, output);
 
-    return TAS_time;
+    return ATOMIC_time;
 }
 
 int main() {
@@ -123,7 +113,7 @@ int main() {
     }
     fclose(input);
 
-    FILE* output = fopen("../Output Files/output_tas.txt", "w");
+    FILE* output = fopen("../Output Files/output_ATOMIC.txt", "w");
     if (output == NULL) {
         cout << "Output file not found" << endl;
         return 1;
@@ -137,15 +127,15 @@ int main() {
     //creating k threads
     vector<pthread_t> threads(k);
     
-    //TAS Method
+    //ATOMIC Method
     int num_rep = 1;
-    double TAS_time=0;
+    double ATOMIC_time=0;
     for(int i = 0; i < num_rep; i++) {
-        TAS_time += TAS(threads, output);
+        ATOMIC_time += ATOMIC(threads, output);
         C=0;
     }
-    TAS_time/=num_rep;
-    cout << "Average TAS time: " << TAS_time << "\n";
+    ATOMIC_time/=num_rep;
+    cout << "Average ATOMIC time: " << ATOMIC_time << "\n";
 
     fclose(output);
 }

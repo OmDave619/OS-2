@@ -1,8 +1,8 @@
 #include<bits/stdc++.h>
 #include<pthread.h>
-#include<atomic>
 #include<sched.h>
 #include<sys/time.h>
+#include<atomic>
 using namespace std;
 
 int n, k;   //size of matrix(n) and number of threads(k)
@@ -10,25 +10,30 @@ int rowInc; //number of rows computed by each thread in one go (Similarly to chu
 vector<vector<int>> A; //matrix A
 vector<vector<int>> prod; //product matrix A*A 
 int C; // Shared counter to keep track of the number of threads that have completed their work
-atomic<bool> lock_(false); // CAS lock initialized to false
+atomic<bool> lock_(false); // BCAS lock initialized to false
+vector<bool> waiting; // vector to keep track of threads waiting in Bounded CAS
 
 typedef struct ComputeArgs {    //struct for thread arguments
     int thread_id;
 } ComputeArgs;
 
 // Thread function to compute the certain rows (rowInc) of the square matrix 
-void* Compute_CAS(void* arg) {
+void* Compute_BCAS(void* arg) {
     ComputeArgs* args = (ComputeArgs*)arg;
     int thread_id = args->thread_id;
 
-    while(true) {
+    while (true) {
 
-        if(C>n) break;  //All rows of product matrix have been computed
+        if (C >= n) break; // All rows of product matrix have been computed
 
-        bool expected = false;
-        while (!lock_.compare_exchange_strong(expected, true)) {
-            expected = false; // Reset expected after failed exchange
+        waiting[thread_id]=true; // Thread is waiting
+        while(waiting[thread_id]) { //spin untill thread is not waiting
+            bool expected = false;
+            if(lock_.compare_exchange_strong(expected, true)) {
+                break; //lock acquired, break out from this loop and enter critical section
+            }
         }
+        waiting[thread_id]=false; // Current thread can enter critical section, it is not waiting any more
 
         /* Critical Section */ 
 
@@ -38,9 +43,21 @@ void* Compute_CAS(void* arg) {
         int end = min(start + rowInc, n);
 
         cout << C << " " << start << " " << end << " Thread: " << thread_id << "\n";
-
+        
         // CRITICAL SECTION ENDS
-        lock_.store(false); // Release the lock
+        
+        //cyclically search for next waiting thread
+        int j = (thread_id + 1) % k;
+        while(j != thread_id && !waiting[j]) {
+            j = (j + 1) % k;            
+        }
+
+        if(j == thread_id) {
+            lock_.store(false); //No waiting thread found, release the lock 
+        }
+        else {
+            waiting[j]=false; //Found a waiting thread, set it to false so it can entere critical section now
+        }
 
         /* Remainder Section */
         
@@ -72,10 +89,10 @@ void print_matrix(vector<vector<int>>& matrix, FILE* out) {
     }
 }
 
-//Compare and swap method to execute mutual exclusion
-double CAS(vector<pthread_t>& threads, FILE* output) {
+//Bounded Compare and swap method to execute mutual exclusion
+double BCAS(vector<pthread_t>& threads, FILE* output) {
 
-    fprintf(output, "Mutual Exclusion using CAS:\n");
+    fprintf(output, "Mutual Exclusion using BCAS:\n");
 
     struct timespec start_time, end_time;
     clock_gettime(CLOCK_MONOTONIC, &start_time);
@@ -84,7 +101,7 @@ double CAS(vector<pthread_t>& threads, FILE* output) {
     for (int i = 0; i < k; i++) {
         ComputeArgs* args = (ComputeArgs*)malloc(sizeof(ComputeArgs));
         args->thread_id = i;
-        pthread_create(&threads[i], NULL, Compute_CAS, (void*)args);
+        pthread_create(&threads[i], NULL, Compute_BCAS, (void*)args);
     }
 
     //joining all threads
@@ -94,16 +111,16 @@ double CAS(vector<pthread_t>& threads, FILE* output) {
 
     clock_gettime(CLOCK_MONOTONIC, &end_time);
 
-    double CAS_time = (end_time.tv_sec - start_time.tv_sec) + (1e-9) * (end_time.tv_nsec - start_time.tv_nsec);
+    double BCAS_time = (end_time.tv_sec - start_time.tv_sec) + (1e-9) * (end_time.tv_nsec - start_time.tv_nsec);
     
-    fprintf(output, "\nTotal time taken using CAS: %f seconds\n", (CAS_time));
-    cout << "Total time taken using CAS: " << CAS_time << " seconds" << endl;
+    fprintf(output, "\nTotal time taken using BCAS: %f seconds\n", (BCAS_time));
+    cout << "Total time taken using BCAS: " << BCAS_time << " seconds" << endl;
     
     // // printing the product matrix
-    fprintf(output, "Product matrix(CAS):\n");
+    fprintf(output, "Product matrix(BCAS):\n");
     print_matrix(prod, output);
 
-    return CAS_time;
+    return BCAS_time;
 }
 
 int main() {
@@ -127,7 +144,10 @@ int main() {
     }
     fclose(input);
 
-    FILE* output = fopen("../Output Files/output_cas.txt", "w");
+    //Resizing the waiting vector and setting all elements to false
+    waiting.resize(k,false);
+
+    FILE* output = fopen("../Output Files/output_Bcas.txt", "w");
     if (output == NULL) {
         cout << "Output file not found" << endl;
         return 1;
@@ -141,15 +161,15 @@ int main() {
     //creating k threads
     vector<pthread_t> threads(k);
     
-    //CAS Method
+    //BCAS Method
     int num_rep = 1;
-    double CAS_time=0;
+    double BCAS_time=0;
     for(int i = 0; i < num_rep; i++) {
-        CAS_time += CAS(threads, output);
+        BCAS_time += BCAS(threads, output);
         C=0;
     }
-    CAS_time/=num_rep;
-    cout << "Average CAS time: " << CAS_time << "\n";
+    BCAS_time/=num_rep;
+    cout << "Average BCAS time: " << BCAS_time << "\n";
 
     fclose(output);
 }
