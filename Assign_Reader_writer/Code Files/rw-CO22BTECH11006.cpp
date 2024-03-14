@@ -23,136 +23,148 @@ exponential_distribution<double> distribution_rem; //exponential distribution fo
 std::default_random_engine generator(std::chrono::system_clock::now().time_since_epoch().count());
 
 // Global pointer to output file
-FILE *output;
+FILE* output;
 
-int readers = 0; //number of active readers 
-sem_t mtx;  //semaphore for mutual exclusion for "readers shared variable"
-sem_t wrt;   //semaphore for writer preference
-sem_t rd;  //semaphore for reader 
 
+double totalWaitTimeWriters = 0.0;
+double totalWaitTimeReaders = 0.0;
+int totalWriterAttempts = 0;
+int totalReaderAttempts = 0;
+double worstWaitTimeWriters = 0.0;
+double worstWaitTimeReaders = 0.0;
+
+sem_t printing_mtx; //semaphore for mutual exclusion for printing
+int readers = 0; // Number of active readers
+int waitingWriters = 0; // Number of writers waiting to enter the critical section
+sem_t mtx;  // Semaphore for mutual exclusion for the readers/waitingwriters count
+sem_t wrt;  // Semaphore to ensure mutual exclusion in the critical section for writers
+sem_t canRead; // Semaphore to control readers' access based on writer priority
 
 void writer_enter() {
-    sem_wait(&rd); //Prioritize writer over reader, make the reader wait 
-    sem_wait(&wrt); //wait if there is a writer in CS
+    sem_wait(&mtx); // Protect the waitingWriters count
+    waitingWriters++;
+    if (waitingWriters == 1)
+        sem_wait(&canRead); // Block readers from starting if this is the first writer waiting
+    sem_post(&mtx);
+    sem_wait(&wrt); // Wait for access to the critical section
 }
 
 void writer_exit() {
-    sem_post(&wrt); //signal other writer if it is waiting
-    sem_post(&rd);  //signal reader if it is waiting
+    sem_post(&wrt); // Release the critical section for the next writer or reader
+    sem_wait(&mtx); // Protect the waitingWriters count
+    waitingWriters--;
+    if (waitingWriters == 0)
+        sem_post(&canRead); // Allow readers to start if no writers are waiting
+    sem_post(&mtx);
 }
 
 void reader_enter() {
-    sem_wait(&rd); //To prevent mutual exclusion among readers
-    sem_wait(&mtx); //to prevent mutual exclusion for readers shared variable
+    sem_wait(&canRead); // Check if readers are allowed to read
+    sem_wait(&mtx); // Mutual exclusion for the readers count
     readers++;
-    if(readers == 1) {  
-        sem_wait(&wrt); //this ensures no writer can enter CS while even one reader is active
-    }   
-    sem_post(&mtx); //signal other readers, as they can enter while this reader is active in CS (Multiple readers criteria)
-    sem_post(&rd);
+    if (readers == 1)
+        sem_wait(&wrt); // If this is the first reader, wait for the critical section to be free
+    sem_post(&mtx);
+    sem_post(&canRead); // Allow other readers or writers to check their conditions
 }
 
 void reader_exit() {
-    sem_wait(&mtx); // to prevent mutual exclusion for readers shared variable 
-    readers--;  //reader wants to leave so decrement the number of active readers
-    if(readers == 0) {  
-        sem_post(&wrt); //If no reader is left in CS, the waiting writer can enter, hence signal it
-    }
-    sem_post(&mtx); //readers leaves
+    sem_wait(&mtx); // Mutual exclusion for the readers count
+    readers--;
+    if (readers == 0)
+        sem_post(&wrt); // If this is the last reader, allow a writer to enter the critical section
+    sem_post(&mtx);
 }
 
 typedef struct ComputeArgs {    //struct for thread arguments
     int thread_id;
 } ComputeArgs;
 
-void* writer(void *arg) {
+void* writer(void* arg) {
     ComputeArgs* args = (ComputeArgs*)arg;
     int id = args->thread_id;
-    
-    for(int i = 1; i <= kw; i++) {
+
+    for (int i = 1; i <= kw; i++) {
         
-
-        auto reqTime = std::chrono::system_clock::now(); 
-        time_t reqTime_t = std::chrono::system_clock::to_time_t(reqTime);
-        std::stringstream ss;
-        ss << std::put_time(std::localtime(&reqTime_t), "%T"); 
-        std::string formattedTime = ss.str(); 
-
-        cout << i << "th CS request by Writer Thread " << id << " at " << std::put_time(std::localtime(&reqTime_t), "%T") << endl ;
-        fprintf(output, "%dth CS request by Writer Thread %d at %s\n", i, id, formattedTime.c_str());
+        sem_wait(&printing_mtx);
+        double reqTime = clock() / (double)CLOCKS_PER_SEC;
+        cout << i << "th CS request by Writer Thread " << id << " at " << reqTime << endl;
+        fprintf(output, "%dth CS request by Writer Thread %d at %f\n", i, id, reqTime);
+        sem_post(&printing_mtx);
 
         writer_enter(); //writer_enter code
 
-        //enters CS        
-        auto enterTime = std::chrono::system_clock::now(); 
-        time_t enterTime_t = std::chrono::system_clock::to_time_t(enterTime);
-        ss << std::put_time(std::localtime(&enterTime_t), "%T"); 
-        std::string enterTime_string = ss.str();
+        //enters CS       
+        sem_wait(&printing_mtx); 
+        double enterTime = clock() / (double)CLOCKS_PER_SEC;
 
-        cout << i << "th CS Entry by Writer Thread " << id << " at " << std::put_time(std::localtime(&enterTime_t), "%T") << endl ;
-        fprintf(output, "%dth CS Entry by Writer Thread %d at %s\n", i, id, enterTime_string.c_str());
-        double randCStime = distribution_cs(generator);  
-        usleep(randCStime * 1000000); //simulate a thread writing in CS
+        totalWaitTimeWriters += (enterTime - reqTime);
+        worstWaitTimeWriters = max(worstWaitTimeWriters, (enterTime - reqTime));
+        totalWriterAttempts++;
+
+        cout << i << "th CS Entry by Writer Thread " << id << " at " << enterTime << endl;
+        fprintf(output, "%dth CS Entry by Writer Thread %d at %f\n", i, id, enterTime);
+        sem_post(&printing_mtx);
+
+        double randCStime = distribution_cs(generator);
+        usleep(randCStime / 1000); //simulate a thread writing in CS
 
         writer_exit(); //writer_exit code
 
-        auto exitTime = std::chrono::system_clock::now(); 
-        time_t exitTime_t = std::chrono::system_clock::to_time_t(exitTime);
-        ss << std::put_time(std::localtime(&exitTime_t), "%T"); 
-        std::string exitTime_string = ss.str();
+        sem_wait(&printing_mtx);
+        double exitTime = clock() / (double)CLOCKS_PER_SEC;
+        cout << i << "th CS Exit by Writer Thread " << id << " at " << exitTime << endl;
+        fprintf(output, "%dth CS Exit by Writer Thread %d at %f\n", i, id, exitTime);
+        sem_post(&printing_mtx);
 
-        cout << i << "th CS Exit by Writer Thread " << id << " at " << std::put_time(std::localtime(&exitTime_t), "%T") << endl ;
-        fprintf(output, "%dth CS Exit by Writer Thread %d at %s\n", i, id, exitTime_string.c_str());
-        
         double randRemtime = distribution_rem(generator);
-        usleep(randRemtime * 1000000); //simulate a thread executing in Remainder Section
+        usleep(randRemtime / 1000); //simulate a thread executing in Remainder Section
     }
 
     free(args);
     pthread_exit(NULL);
 }
 
-void* reader(void *arg) {
+void* reader(void* arg) {
     ComputeArgs* args = (ComputeArgs*)arg;
     int id = args->thread_id;
 
-    for(int i = 1; i <= kr; i++) {
-
-        auto reqTime = std::chrono::system_clock::now(); 
-        time_t reqTime_t = std::chrono::system_clock::to_time_t(reqTime);
-        std::stringstream ss;
-        ss << std::put_time(std::localtime(&reqTime_t), "%T"); 
-        std::string formattedTime = ss.str(); 
-
-        cout << i << "th CS request by Reader Thread " << id << " at " << std::put_time(std::localtime(&reqTime_t), "%T") << endl ;
-        fprintf(output, "%dth CS request by Reader Thread %d at %s\n", i, id, formattedTime.c_str());
-
+    for (int i = 1; i <= kr; i++) {
+        
+        sem_wait(&printing_mtx);
+        double reqTime = clock() / (double)CLOCKS_PER_SEC;
+        cout << i << "th CS request by Reader Thread " << id << " at " << reqTime << endl;
+        fprintf(output, "%dth CS request by Reader Thread %d at %f\n", i, id, reqTime);
+        sem_post(&printing_mtx);
         reader_enter(); //reader_enter code
 
         //enters CS
-        auto enterTime = std::chrono::system_clock::now(); 
-        time_t enterTime_t = std::chrono::system_clock::to_time_t(enterTime);
-        ss << std::put_time(std::localtime(&enterTime_t), "%T"); 
-        std::string enterTime_string = ss.str();
+        sem_wait(&printing_mtx);
+        double enterTime = clock() / (double)CLOCKS_PER_SEC;
 
-        cout << i << "th CS Entry by Reader Thread " << id << " at " << std::put_time(std::localtime(&enterTime_t), "%T") << endl ;
-        fprintf(output, "%dth CS Entry by Reader Thread %d at %s\n", i, id, enterTime_string.c_str());
-        double randCStime = distribution_cs(generator);  
-        usleep(randCStime * 1000000); // simulate a thread reading from CS
+        totalWaitTimeReaders += (enterTime - reqTime);
+        worstWaitTimeReaders = max(worstWaitTimeReaders, (enterTime - reqTime));
+        totalReaderAttempts++;
+
+        cout << i << "th CS Entry by Reader Thread " << id << " at " << enterTime << endl;
+        fprintf(output, "%dth CS Entry by Reader Thread %d at %f\n", i, id, enterTime);
+        sem_post(&printing_mtx);
+
+        double randCStime = distribution_cs(generator); // in ms
+        usleep(randCStime / 1000); // simulate a thread reading from CS
+
 
         reader_exit(); //reader_exit code
 
-        auto exitTime = std::chrono::system_clock::now(); 
-        time_t exitTime_t = std::chrono::system_clock::to_time_t(exitTime);
-        ss << std::put_time(std::localtime(&exitTime_t), "%T"); 
-        std::string exitTime_string = ss.str();
-        
-        cout << i << "th CS Exit by Reader Thread " << id << " at " << std::put_time(std::localtime(&exitTime_t), "%T") << endl ;
-        fprintf(output, "%dth CS Exit by Reader Thread %d at %s\n", i, id, exitTime_string.c_str());
-        
+        sem_wait(&printing_mtx);
+        double exitTime = clock() / (double)CLOCKS_PER_SEC;
+        cout << i << "th CS Exit by Reader Thread " << id << " at " << exitTime << endl;
+        fprintf(output, "%dth CS Exit by Reader Thread %d at %f\n", i, id, exitTime);
+        sem_post(&printing_mtx);
+
         double randRemtime = distribution_rem(generator);
         // cout << "Remainder Section Time: " << randRemtime << endl;
-        usleep(randRemtime * 1000000); //simulate a thread executing in Remainder Section
+        usleep(randRemtime / 1000); //simulate a thread executing in Remainder Section
     }
 
     free(args);
@@ -176,8 +188,8 @@ int main() {
     cout << "Number of times each reader thread tries to enter critical section: " << kr << endl;
 
     //output file
-    output = fopen("../Output Files/output.txt", "w");
-    if(output == NULL) {
+    output = fopen("../Output Files/RW-log.txt", "w");
+    if (output == NULL) {
         cout << "Output file not found" << endl;
         return 1;
     }
@@ -188,38 +200,56 @@ int main() {
 
     pthread_t writerThreads[nw];
     pthread_t readerThreads[nr];
-    
+
     sem_init(&mtx, 0, 1);  // Initialize mutex semaphore to 1
     sem_init(&wrt, 0, 1);  // Initialize write semaphore to 1
-    sem_init(&rd, 0, 1); // Initialize read semaphore to 1
+    sem_init(&canRead, 0, 1); // Initialize Can read semaphore to 1
+    sem_init(&printing_mtx, 0, 1); // Initialize printing semaphore to 1
 
-    distribution_cs = exponential_distribution<double>(1.0/muCS);
-    distribution_rem = exponential_distribution<double>(1.0/muRem);
-
-    //initializing printing lock
+    distribution_cs = exponential_distribution<double>(1.0 / muCS);
+    distribution_rem = exponential_distribution<double>(1.0 / muRem);
 
     //creating writer threads
-    for(int i = 0; i < nw; i++) {
+    for (int i = 0; i < nw; i++) {
         ComputeArgs* args = (ComputeArgs*)malloc(sizeof(ComputeArgs));
-        args->thread_id = i+1;
-        pthread_create(&writerThreads[i], NULL, writer, (void *)args);
+        args->thread_id = i + 1;
+        pthread_create(&writerThreads[i], NULL, writer, (void*)args);
     }
 
     //creating reader threads
-    for(int i = 0; i < nr; i++) {
+    for (int i = 0; i < nr; i++) {
         ComputeArgs* args = (ComputeArgs*)malloc(sizeof(ComputeArgs));
-        args->thread_id = i+1;
-        pthread_create(&readerThreads[i], NULL, reader, (void *)args);
+        args->thread_id = i + 1;
+        pthread_create(&readerThreads[i], NULL, reader, (void*)args);
     }
 
     //joining threads
-    for(int i = 0; i < nw; i++) {
-        pthread_join(writerThreads[i], NULL);
-    }
-
-    for(int i = 0; i < nr; i++) {
+    for (int i = 0; i < nr; i++) {
         pthread_join(readerThreads[i], NULL);
     }
-
+    for (int i = 0; i < nw; i++) {
+        pthread_join(writerThreads[i], NULL);
+    }
     fclose(output);
+
+    FILE *output2 = fopen("../Output Files/RW-Average_time.txt", "w");
+
+    double avgWaitTimeWriter = totalWriterAttempts > 0 ? totalWaitTimeWriters / totalWriterAttempts : 0;
+    double avgWaitTimeReader = totalReaderAttempts > 0 ? totalWaitTimeReaders / totalReaderAttempts : 0;
+
+    cout << "Average time/writer threads: " << avgWaitTimeWriter << " seconds." << endl;
+    fprintf(output2, "Average time/writer threads: %f seconds.\n", avgWaitTimeWriter);
+    cout << "Number of writer attempts: " << totalWriterAttempts << endl;
+
+    cout << "Average time/reader threads: " << avgWaitTimeReader << " seconds." << endl;
+    fprintf(output2, "Average time/reader threads: %f seconds.\n", avgWaitTimeReader);
+    cout << "Number of reader attempts: " << totalReaderAttempts << endl;
+
+    cout << "Worst case/writer threads: " << worstWaitTimeWriters << " seconds." << endl;
+    fprintf(output2, "Worst case/writer threads: %f seconds.\n", worstWaitTimeWriters);
+    cout << "Worst case/reader threads: " << worstWaitTimeReaders << " seconds." << endl;
+    fprintf(output2, "Worst case/reader threads: %f seconds.\n", worstWaitTimeReaders);
+    
+    fclose(output2);
+    return 0;
 }
