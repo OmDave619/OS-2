@@ -88,7 +88,7 @@ void* writer(void* arg) {
         
         sem_wait(&printing_mtx);
         double reqTime = clock() / (double)CLOCKS_PER_SEC;
-        cout << i << "th CS request by Writer Thread " << id << " at " << reqTime << endl;
+        // cout << i << "th CS request by Writer Thread " << id << " at " << reqTime << endl;
         fprintf(output, "%dth CS request by Writer Thread %d at %f\n", i, id, reqTime);
         sem_post(&printing_mtx);
 
@@ -102,23 +102,23 @@ void* writer(void* arg) {
         worstWaitTimeWriters = max(worstWaitTimeWriters, (enterTime - reqTime));
         totalWriterAttempts++;
 
-        cout << i << "th CS Entry by Writer Thread " << id << " at " << enterTime << endl;
+        // cout << i << "th CS Entry by Writer Thread " << id << " at " << enterTime << endl;
         fprintf(output, "%dth CS Entry by Writer Thread %d at %f\n", i, id, enterTime);
         sem_post(&printing_mtx);
 
         double randCStime = distribution_cs(generator);
-        usleep(randCStime / 1000); //simulate a thread writing in CS
+        usleep(randCStime * 1000); //simulate a thread writing in CS
 
         writer_exit(); //writer_exit code
 
         sem_wait(&printing_mtx);
         double exitTime = clock() / (double)CLOCKS_PER_SEC;
-        cout << i << "th CS Exit by Writer Thread " << id << " at " << exitTime << endl;
+        // cout << i << "th CS Exit by Writer Thread " << id << " at " << exitTime << endl;
         fprintf(output, "%dth CS Exit by Writer Thread %d at %f\n", i, id, exitTime);
         sem_post(&printing_mtx);
 
         double randRemtime = distribution_rem(generator);
-        usleep(randRemtime / 1000); //simulate a thread executing in Remainder Section
+        usleep(randRemtime * 1000); //simulate a thread executing in Remainder Section
     }
 
     free(args);
@@ -133,7 +133,7 @@ void* reader(void* arg) {
         
         sem_wait(&printing_mtx);
         double reqTime = clock() / (double)CLOCKS_PER_SEC;
-        cout << i << "th CS request by Reader Thread " << id << " at " << reqTime << endl;
+        // cout << i << "th CS request by Reader Thread " << id << " at " << reqTime << endl;
         fprintf(output, "%dth CS request by Reader Thread %d at %f\n", i, id, reqTime);
         sem_post(&printing_mtx);
         reader_enter(); //reader_enter code
@@ -146,25 +146,25 @@ void* reader(void* arg) {
         worstWaitTimeReaders = max(worstWaitTimeReaders, (enterTime - reqTime));
         totalReaderAttempts++;
 
-        cout << i << "th CS Entry by Reader Thread " << id << " at " << enterTime << endl;
+        // cout << i << "th CS Entry by Reader Thread " << id << " at " << enterTime << endl;
         fprintf(output, "%dth CS Entry by Reader Thread %d at %f\n", i, id, enterTime);
         sem_post(&printing_mtx);
 
         double randCStime = distribution_cs(generator); // in ms
-        usleep(randCStime / 1000); // simulate a thread reading from CS
+        usleep(randCStime * 1000); // simulate a thread reading from CS
 
 
         reader_exit(); //reader_exit code
 
         sem_wait(&printing_mtx);
         double exitTime = clock() / (double)CLOCKS_PER_SEC;
-        cout << i << "th CS Exit by Reader Thread " << id << " at " << exitTime << endl;
+        // cout << i << "th CS Exit by Reader Thread " << id << " at " << exitTime << endl;
         fprintf(output, "%dth CS Exit by Reader Thread %d at %f\n", i, id, exitTime);
         sem_post(&printing_mtx);
 
         double randRemtime = distribution_rem(generator);
         // cout << "Remainder Section Time: " << randRemtime << endl;
-        usleep(randRemtime / 1000); //simulate a thread executing in Remainder Section
+        usleep(randRemtime * 1000); //simulate a thread executing in Remainder Section
     }
 
     free(args);
@@ -182,10 +182,10 @@ int main() {
     fscanf(input, "%d %d %d %d %lf %lf", &nw, &nr, &kw, &kr, &muCS, &muRem);
     fclose(input);
 
-    cout << "Number of writer threads: " << nw << endl;
-    cout << "Number of reader threads: " << nr << endl;
-    cout << "Number of times each writer thread tries to enter critical section: " << kw << endl;
-    cout << "Number of times each reader thread tries to enter critical section: " << kr << endl;
+    // cout << "Number of writer threads: " << nw << endl;
+    // cout << "Number of reader threads: " << nr << endl;
+    // cout << "Number of times each writer thread tries to enter critical section: " << kw << endl;
+    // cout << "Number of times each reader thread tries to enter critical section: " << kr << endl;
 
     //output file
     output = fopen("../Output Files/RW-log.txt", "w");
@@ -237,17 +237,17 @@ int main() {
     double avgWaitTimeWriter = totalWriterAttempts > 0 ? totalWaitTimeWriters / totalWriterAttempts : 0;
     double avgWaitTimeReader = totalReaderAttempts > 0 ? totalWaitTimeReaders / totalReaderAttempts : 0;
 
-    cout << "Average time/writer threads: " << avgWaitTimeWriter << " seconds." << endl;
+    // cout << "Average time/writer threads: " << avgWaitTimeWriter << " seconds." << endl;
     fprintf(output2, "Average time/writer threads: %f seconds.\n", avgWaitTimeWriter);
-    cout << "Number of writer attempts: " << totalWriterAttempts << endl;
+    // cout << "Number of writer attempts: " << totalWriterAttempts << endl;
 
-    cout << "Average time/reader threads: " << avgWaitTimeReader << " seconds." << endl;
+    // cout << "Average time/reader threads: " << avgWaitTimeReader << " seconds." << endl;
     fprintf(output2, "Average time/reader threads: %f seconds.\n", avgWaitTimeReader);
-    cout << "Number of reader attempts: " << totalReaderAttempts << endl;
+    // cout << "Number of reader attempts: " << totalReaderAttempts << endl;
 
-    cout << "Worst case/writer threads: " << worstWaitTimeWriters << " seconds." << endl;
+    // cout << "Worst case/writer threads: " << worstWaitTimeWriters << " seconds." << endl;
     fprintf(output2, "Worst case/writer threads: %f seconds.\n", worstWaitTimeWriters);
-    cout << "Worst case/reader threads: " << worstWaitTimeReaders << " seconds." << endl;
+    // cout << "Worst case/reader threads: " << worstWaitTimeReaders << " seconds." << endl;
     fprintf(output2, "Worst case/reader threads: %f seconds.\n", worstWaitTimeReaders);
     
     fclose(output2);
