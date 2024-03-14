@@ -1,3 +1,7 @@
+// Author : Om Dave
+// Roll No. : CO22BTECH11006
+// Fair : Readers-Writers Code
+
 #include<bits/stdc++.h>
 #include<pthread.h>
 #include<ctime>
@@ -204,7 +208,7 @@ int main() {
         args->thread_id = i + 1;
         pthread_create(&readerThreads[i], NULL, reader, (void*)args);
     }
-    
+
 
 
     //joining threads
@@ -234,7 +238,7 @@ int main() {
     fprintf(output2, "Worst case/writer threads: %f seconds.\n", worstWaitTimeWriters);
     // cout << "Worst case/reader threads: " << worstWaitTimeReaders << " seconds." << endl;
     fprintf(output2, "Worst case/reader threads: %f seconds.\n", worstWaitTimeReaders);
-    
+
     fclose(output2);
     return 0;
 }

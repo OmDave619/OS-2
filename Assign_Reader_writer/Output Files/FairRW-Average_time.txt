@@ -1,4 +1,4 @@
-Average time/writer threads: 0.002185 seconds.
-Average time/reader threads: 0.001934 seconds.
-Worst case/writer threads: 0.004749 seconds.
-Worst case/reader threads: 0.002206 seconds.
+Average time/writer threads: 0.002179 seconds.
+Average time/reader threads: 0.002144 seconds.
+Worst case/writer threads: 0.004626 seconds.
+Worst case/reader threads: 0.002921 seconds.

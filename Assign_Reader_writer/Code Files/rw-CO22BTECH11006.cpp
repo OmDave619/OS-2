@@ -1,3 +1,7 @@
+// Author : Om Dave
+// Roll No. : CO22BTECH11006
+// Writer Preferance : Readers-Writers Code
+
 #include<bits/stdc++.h>
 #include<pthread.h>
 #include<ctime>
